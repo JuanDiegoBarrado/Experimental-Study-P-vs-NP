@@ -1,0 +1,15 @@
+stages:
+    - test
+
+before_script:
+    - git submodule sync --recursive
+    - git submodule update --init --recursive
+    - apt-get update -qy
+    - apt-get install -y g++
+
+test:
+    stage: test
+    script:
+        - g++ -O3 -std=c++11 -Wall -Wextra -pedantic full_check.cpp -o full_check
+        - time ./full_check | tee -i table.txt
+        - cat table.txt | python checktab.py
