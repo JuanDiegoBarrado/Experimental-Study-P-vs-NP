@@ -2,7 +2,6 @@ import huffman
 from sympy.logic.boolalg import Or, And, Not, simplify_logic
 from sympy import symbols
 import numpy as np
-from itertools import combinations
 
 def num_ones(sequence: str):
     return sequence.count('1')
