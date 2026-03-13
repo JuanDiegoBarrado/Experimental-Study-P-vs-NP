@@ -1,16 +1,32 @@
-#include <bits/stdc++.h>
+#include <vector>
+#include <algorithm>
+#include "boolean_functions/boolean_functions.h"
+
 #define rep(i, a, b) for(int i = a; i < (b); ++i)
 #define sz(x) (int)(x).size()
 
 using namespace std;
 using vi = vector<int>;
-typedef vector<vector<bool>> vb;
+using vb = vector<bool>;
+using vvb = vector<vector<bool>>;
 
+/**
+ * Author: chilli, SJTU, Janez Konc
+ * Date: 2019-05-10
+ * License: GPL3+
+ * Source: https://en.wikipedia.org/wiki/MaxCliqueDyn_maximum_clique_algorithm, https://gitlab.com/janezkonc/mcqd/blob/master/mcqd.h
+ * Description: Quickly finds a maximum clique of a graph (given as symmetric bitset
+ * matrix; self-edges not allowed). Can be used to find a maximum independent
+ * set by finding a clique of the complement graph.
+ * Time: Runs in about 1s for n=155 and worst case random graphs (p=.90). Runs
+ * faster for sparse graphs.
+ * Status: stress-tested
+ */
 struct Maxclique {
 	double limit=0.025, pk=0;
 	struct Vertex { int i, d=0; };
 	typedef vector<Vertex> vv;
-	vb e;
+	vvb e;
 	vv V;
 	vector<vi> C;
 	vi qmax, q, S, old;
@@ -50,22 +66,9 @@ struct Maxclique {
 		}
 	}
 	vi maxClique() { init(V), expand(V); return qmax; }
-	Maxclique(vb conn) : e(conn), C(sz(e)+1), S(sz(C)), old(S) {
+	Maxclique(vvb conn) : e(conn), C(sz(e)+1), S(sz(C)), old(S) {
 		rep(i,0,sz(e)) V.push_back({i});
 	}
 };
 
-vector<vector<bool>> decode_graph(const vector<bool>& code_edges, int v, int e) {
-    vector<vector<bool>> graph_matrix(v, vector<bool>(v, false));
-
-    int k = 0;
-    for (int i = 1; i < v; i++) {
-        for (int j = 0; j < i; j++) {
-            graph_matrix[i][j] = code_edges[k];
-            graph_matrix[j][i] = code_edges[k];
-            k++;
-        }
-    }
-
-    return graph_matrix;
-}
+vvb decode_graph(const chain& graph_codification, int n_bits);
