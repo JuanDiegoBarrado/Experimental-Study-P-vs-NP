@@ -1,8 +1,29 @@
 #include <math.h>
 #include "boolean_functions/boolean_functions.h"
 #include "graph_manipulations/graph.h"
-#include "boolean_functions.h"
 using namespace std;
+
+string print_table(truthtable& t) {
+    std::string s;
+    s.resize(t.size());
+    for (int i = 0; i < t.size(); i++)
+        s[t.size()-1 - i] = (t[i]) ? '1' : '0'; // Invierte al imprimir 
+    return s;
+}
+
+truthtable to_truthtable(uint32_t n, int bits) {
+    std::vector<bool> v(bits);
+    for (int i = 0; i < bits; ++i)
+        v[i] = (n >> i) & 1;
+    return v;
+}
+
+truthtable to_truthtable(string n, int bits) {
+    std::vector<bool> v(bits);
+    for (int i = 0; i < bits; ++i)
+        v[i] = (n[bits-1 - i] == '1');
+    return v;
+}
 
 bool identity_function(const chain &c, int n_bits, int bit) {
     return c[bit]; // TODO check is a proper bit
@@ -10,6 +31,10 @@ bool identity_function(const chain &c, int n_bits, int bit) {
 
 bool parity_function(const chain& c, int n_bits) {
     return c.count() % 2 == 0;
+}
+
+bool majority_function(const chain &c, int n_bits) {
+    return c.count() > n_bits / 2;
 }
 
 bool and_function(const chain& c, int n_bits) {

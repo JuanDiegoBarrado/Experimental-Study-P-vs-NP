@@ -1,0 +1,1 @@
+g++ -Ilib -Ithird_party test/cpp/src/test_binaries.cpp -o test/cpp/bin/test_binaries.exe -static-libgcc -static-libstdc++ -static -lpthread
