@@ -52,8 +52,8 @@ $(BUILD)/optimal5_binary.exe: src/optimal5_binary.cpp
 $(BUILD)/optimal5_binary_classes.exe: src/optimal5_binary_classes.cpp
 	$(CXX) $(FLAGS_BASE) $(FLAGS_DEBUG) $^ -o $@ $(FLAGS_STATIC)
 
-$(BUILD)/optimal5_numgates.exe: src/optimal5_numgates.cpp
-	$(CXX) $(FLAGS_BASE) $(FLAGS_DEBUG) $^ -o $@ $(FLAGS_STATIC)
+$(BUILD)/optimal5_numgates.exe: src/optimal5_numgates.cpp $(LIB_COMMON) $(HEADERS_COMMON)
+	$(CXX) $(FLAGS_LIB) $(FLAGS_DEBUG) $(filter %.cpp, $^) -o $@ $(FLAGS_STATIC)
 
 $(BUILD)/calculate_metric_stochastic_by_classes.exe: src/calculate_metric_stochastic_by_classes.cpp $(LIB_FULL) $(HEADERS_FULL)
 	$(CXX) $(FLAGS_LIB) $(FLAGS_DEBUG) $(filter %.cpp, $^) -o $@

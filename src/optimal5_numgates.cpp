@@ -1,4 +1,5 @@
 #include "optimal5/optimal5.h"
+#include "boolean_functions/boolean_functions.h"
 
 uint32_t fn = 0;
 
@@ -14,7 +15,13 @@ int main(int argc, char* argv[]) {
     opt5::Optimiser opt(filename);
     auto gv = opt.lookup(fn);
     int num_gates = gv.n_gates;
+    std::string s = opt5::print_gatevec(gv);
+    truthtable t = to_truthtable(fn);
+
+    std::cout << "Function: " << print_table(t) << "\n";
     std::cout << "Num gates: " << num_gates << "\n";
+    std::cout << "Circuit:\n";
+    std::cout << s << "\n";
 
     return 0;
 
