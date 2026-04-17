@@ -4,14 +4,20 @@ BUILD = build
 # Flags comunes
 FLAGS_BASE = -Ilib -Ithird_party
 FLAGS_LIB  = -Ilib/cpp -Ithird_party
-FLAGS_STATIC = -static-libgcc -static-libstdc++ -static -lpthread
 
 # Flags de depuración: actívate con `make DEBUG=1`
 ifdef DEBUG
   FLAGS_DEBUG = -g -O0
-  FLAGS_STATIC =
 else
   FLAGS_DEBUG =
+endif
+
+# Flags de compilación estática: actívate con `make STATIC=1`
+ifdef STATIC
+  FLAGS_LINK = -static-libgcc -static-libstdc++ -static -lpthread
+else
+  # Mantenemos pthread para enlazado dinámico si es necesario
+  FLAGS_LINK = -lpthread
 endif
 
 # Librerías comunes
@@ -44,25 +50,25 @@ $(BUILD):
 	mkdir -p $(BUILD)
 
 $(BUILD)/main.exe: src/compute_truth_table.cpp $(LIB_COMMON) $(HEADERS_COMMON)
-	$(CXX) $(FLAGS_BASE) $(FLAGS_DEBUG) $(filter %.cpp, $^) -o $@
+	$(CXX) $(FLAGS_BASE) $(FLAGS_DEBUG) $(filter %.cpp, $^) -o $@ $(FLAGS_LINK)
 
 $(BUILD)/optimal5_binary.exe: src/optimal5_binary.cpp
-	$(CXX) $(FLAGS_BASE) $(FLAGS_DEBUG) $^ -o $@ $(FLAGS_STATIC)
+	$(CXX) $(FLAGS_BASE) $(FLAGS_DEBUG) $^ -o $@ $(FLAGS_LINK)
 
 $(BUILD)/optimal5_binary_classes.exe: src/optimal5_binary_classes.cpp
-	$(CXX) $(FLAGS_BASE) $(FLAGS_DEBUG) $^ -o $@ $(FLAGS_STATIC)
+	$(CXX) $(FLAGS_BASE) $(FLAGS_DEBUG) $^ -o $@ $(FLAGS_LINK)
 
 $(BUILD)/optimal5_numgates.exe: src/optimal5_numgates.cpp $(LIB_COMMON) $(HEADERS_COMMON)
-	$(CXX) $(FLAGS_LIB) $(FLAGS_DEBUG) $(filter %.cpp, $^) -o $@ $(FLAGS_STATIC)
+	$(CXX) $(FLAGS_LIB) $(FLAGS_DEBUG) $(filter %.cpp, $^) -o $@ $(FLAGS_LINK)
 
 $(BUILD)/calculate_metric_stochastic_by_classes.exe: src/calculate_metric_stochastic_by_classes.cpp $(LIB_FULL) $(HEADERS_FULL)
-	$(CXX) $(FLAGS_LIB) $(FLAGS_DEBUG) $(filter %.cpp, $^) -o $@
+	$(CXX) $(FLAGS_LIB) $(FLAGS_DEBUG) $(filter %.cpp, $^) -o $@ $(FLAGS_LINK)
 
 $(BUILD)/calculate_min_expression.exe: src/calculate_min_expression.cpp $(LIB_FULL) $(HEADERS_FULL)
-	$(CXX) $(FLAGS_LIB) $(FLAGS_DEBUG) $(filter %.cpp, $^) -o $@
+	$(CXX) $(FLAGS_LIB) $(FLAGS_DEBUG) $(filter %.cpp, $^) -o $@ $(FLAGS_LINK)
 
 $(BUILD)/calculate_fnm_expression.exe: src/calculate_fnm_expression.cpp $(LIB_FULL) $(HEADERS_FULL)
-	$(CXX) $(FLAGS_LIB) $(FLAGS_DEBUG) $(filter %.cpp, $^) -o $@
+	$(CXX) $(FLAGS_LIB) $(FLAGS_DEBUG) $(filter %.cpp, $^) -o $@ $(FLAGS_LINK)
 
 clean:
 	rm -f $(ALL)
