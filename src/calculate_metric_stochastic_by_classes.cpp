@@ -26,6 +26,7 @@ string METRIC_NAME;
 string COMPLEXITY_CLASS = "";
 
 int parse_argument(int argc, char * argv[]);
+void print_usage(const char* prog);
 
 int main(int argc, char* argv[]) {
     // ── Argument parsing ─────────────────────────────────────────────────────
@@ -101,10 +102,7 @@ int main(int argc, char* argv[]) {
                 
                 truthtable t = to_truthtable(buffer[i]);
                 ull v = METRIC(t);
-                // if (buffer[i] == 65814) {
-                //     cout << v << ": " << print_table(t);
-                // }
-
+                
                 if (!valid) {
                     min_val = v; valid = true; lowest_functions.clear();  lowest_functions.insert(buffer[i]);
                     max_val = v; valid = true; highest_functions.clear(); highest_functions.insert(buffer[i]);
@@ -195,15 +193,10 @@ int main(int argc, char* argv[]) {
     }
     
     // Build bin edges:  NUM_BINS+1 edges from min_val to max_val  (inclusive)
-    int NUM_BINS = min(MAX_NUM_BINS, max_val - min_val + 1);
-    vector<double> bin_edges(NUM_BINS + 1);
-    double lo = double(min_val);
-    double hi = double(max_val);
-    double step = (hi - lo) / NUM_BINS;
-    for (int b = 0; b <= NUM_BINS; ++b)
-        bin_edges[b] = lo + b * step;
-
-    vector<ull> hist_accum(NUM_BINS, 0LL);
+    ull range = max_val - min_val + 1;
+    ull NUM_BINS = min(MAX_NUM_BINS, range);
+    ull bin_size = (range + NUM_BINS - 1) / NUM_BINS;
+    vector<ull> hist_accum(NUM_BINS, 0);
 
     // ── Pass 2: calculate bins ───────────────────────────────────────────────────
     cout << "Computing histogram...\n";
@@ -220,15 +213,7 @@ int main(int argc, char* argv[]) {
             
             truthtable t = to_truthtable(buffer[i]);
             ull v = METRIC(t);
-
-            // Bin the value  (same as numpy.histogram with bin_edges)
-            double dv = double(v);
-            int bin = int((dv - bin_edges[0]) / (bin_edges[NUM_BINS] - bin_edges[0]) * NUM_BINS);
-            // Clamp: last edge is inclusive (matches numpy behaviour)
-            if (bin < 0)
-                bin = 0;
-            if (bin >= NUM_BINS)
-                bin = NUM_BINS - 1;
+            ull bin = (v - min_val) / bin_size;
             hist_accum[bin]++;
         }
         ++nbatch;
@@ -259,8 +244,11 @@ int main(int argc, char* argv[]) {
         }
 
         fh << "bin_left,bin_right,count\n";
-        for (int b = 0; b < NUM_BINS; ++b)
-            fh << bin_edges[b] << "," << bin_edges[b+1] << "," << hist_accum[b] << "\n";
+        for (int b = 0; b < NUM_BINS; ++b) {
+            int bin_start = min_val + b * bin_size;
+            int bin_end   = bin_start + bin_size - 1;
+            fh << bin_start << "," << bin_end << "," << hist_accum[b] << "\n";
+        }
         cout << "Histogram saved -> " << hist_path << "\n";
     }
 
@@ -288,7 +276,7 @@ int parse_argument(int argc, char * argv[]) {
         } else if ((arg == "-c" || arg == "--class") && i + 1 < argc) {
             COMPLEXITY_CLASS = argv[++i];
         } else {
-            cerr << "Unknown argument: " << arg << "\n";
+            print_usage(argv[0]);
             return -1;
         }
     }
@@ -303,4 +291,19 @@ int parse_argument(int argc, char * argv[]) {
     }
 
     return 0;
+}
+
+void print_usage(const char* prog) {
+    cerr << "Usage: " << prog << " -m METRIC -c CLASS [OPTIONS]\n\n"
+         << "Required:\n"
+         << "  -m, --metric  METRIC    Metric to use. Available:";
+    for (auto& [name, _] : METRICS) cerr << " " << name;
+    cerr << "\n"
+         << "  -c, --class   CLASS     Complexity class to analyse\n\n"
+         << "Options:\n"
+         << "  -b, --batch   SIZE      Batch size (default: " << BATCH_SIZE << ")\n"
+         << "  -p, --prob    PROB      Probability threshold (default: " << PROB << ")\n\n"
+         << "Examples:\n"
+         << "  " << prog << " --metric entropy --class NP\n"
+         << "  " << prog << " --metric entropy --class NP --batch 512 --prob 0.75\n";
 }

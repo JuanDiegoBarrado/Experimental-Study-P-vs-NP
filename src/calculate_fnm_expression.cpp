@@ -8,6 +8,7 @@ const int NUM_BITS = 5;
 truthtable truth_table;
 
 int parse_argument(int argc, char * argv[]);
+void print_usage(const char* prog);
 
 int main(int argc, char * argv[]){
     // ── Argument parsing ─────────────────────────────────────────────────────
@@ -29,17 +30,31 @@ int main(int argc, char * argv[]){
 }
 
 int parse_argument(int argc, char * argv[]) {
+    if (argc < 3) {
+        print_usage(argv[0]);
+        return 1;
+    }
     
     for (int i = 1; i < argc; ++i) {
         string arg = argv[i];
         if ((arg == "-i" || arg == "--int") && i + 1 < argc) {
             truth_table = to_truthtable(stoull(argv[++i]), 32);
-        } else if ((arg == "-s" || arg == "--string") && i + 1 < argc) {
+        } else if ((arg == "-s" || arg == "--str") && i + 1 < argc) {
             truth_table = to_truthtable(argv[++i], 32);
         } else {
-            cerr << "Unknown argument: " << arg << "\n";
+            print_usage(argv[0]);
             return -1;
         }
     }
     return 0;
+}
+
+void print_usage(const char* prog) {
+    cerr << "Usage: " << prog << " [OPTION] VALUE\n\n"
+         << "Options:\n"
+         << "  -i, --int     Truth table as a 32-bit unsigned integer  (e.g. 363959363)\n"
+         << "  -s, --str     Truth table as a binary string            (e.g. 00010110...)\n\n"
+         << "Example:\n"
+         << "  " << prog << " --int 363959363\n"
+         << "  " << prog << " --string 00010110100110101110010001000011\n";
 }
