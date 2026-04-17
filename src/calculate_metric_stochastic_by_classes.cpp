@@ -12,7 +12,7 @@
 
 using namespace std;
 namespace fs = filesystem;
-using ull = unsigned long long;
+using ull = uint64_t;
 
 
 // ─────────────────────────────────────────────────────────────────────────────

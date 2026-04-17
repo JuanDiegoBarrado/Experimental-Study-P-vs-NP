@@ -2,7 +2,8 @@
 #include "metrics/metrics.h"
 #include <vector>
 #include <cstdint>
-using ull = unsigned long long int;
+
+using ull = uint64_t;
 
 const int NUM_BITS = 5;
 truthtable truth_table;

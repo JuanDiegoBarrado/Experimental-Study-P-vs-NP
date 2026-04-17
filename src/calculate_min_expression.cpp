@@ -1,7 +1,8 @@
 #include "boolean_functions/boolean_functions.h"
 #include <vector>
 #include <cstdint>
-using ull = unsigned long long int;
+
+using ull = uint64_t;
 
 const int NUM_BITS = 5;
 

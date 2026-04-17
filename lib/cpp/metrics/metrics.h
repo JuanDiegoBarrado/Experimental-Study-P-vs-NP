@@ -4,7 +4,7 @@
 #include <string>
 
 using namespace std;
-using ull = unsigned long long int;
+using ull = uint64_t;
 using complexity_metric = std::function<ull(const truthtable&)>;
 
 ull num_ones(const truthtable& sequence);
