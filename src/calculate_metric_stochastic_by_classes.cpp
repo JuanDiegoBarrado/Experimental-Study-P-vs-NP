@@ -5,6 +5,8 @@
 #include <unordered_set>
 #include <random>
 #include <chrono>
+#include <thread>
+#include <utility>
 
 #include "boolean_functions/boolean_functions.h"
 #include "metrics/metrics.h"
@@ -13,6 +15,25 @@
 using namespace std;
 namespace fs = filesystem;
 using ull = uint64_t;
+
+struct ThreadRNG {
+    mt19937 gen;
+    uniform_real_distribution<float> dist{0.0f, 1.0f};
+
+    ThreadRNG(ull base_seed, unsigned int thread_id) {
+        seed_seq seq{
+            static_cast<uint32_t>(base_seed),
+            static_cast<uint32_t>(base_seed >> 32),
+            static_cast<uint32_t>(thread_id),
+            static_cast<uint32_t>(thread_id * 0x85EBCA6Bu)
+        };
+        gen.seed(seq);
+    }
+
+    float next() {
+        return dist(gen);
+    }
+};
 
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -24,6 +45,8 @@ float PROB = 2.0f;
 complexity_metric METRIC;
 string METRIC_NAME;
 string COMPLEXITY_CLASS = "";
+ull RNG_BASE_SEED = 0;
+bool RNG_SEED_FROM_CLI = false;
 
 int parse_argument(int argc, char * argv[]);
 void print_usage(const char* prog);
@@ -32,52 +55,64 @@ int main(int argc, char* argv[]) {
     // ── Argument parsing ─────────────────────────────────────────────────────
     if (parse_argument(argc, argv) != 0)
         return -1;
+    // ─────────────────────────────────────────────────────────────────────────
 
-    // ── File paths ──────────────────────────────────────────────────────────
-    string functions_data       = "data/optimal5/data_" + COMPLEXITY_CLASS + ".bin";
-    string metric_results_path  = "data/" + METRIC_NAME + "/classes/class_" + COMPLEXITY_CLASS + "/";
-
+    
     // ── Derived constants ────────────────────────────────────────────────────
-    std::random_device rd;
-    std::mt19937 gen(rd());
-    std::uniform_real_distribution<> dis(0.0, 1.0);
-
+    // File paths
+    string functions_filepath   = "data/optimal5/data_" + COMPLEXITY_CLASS + ".bin";
+    string metric_results_path  = "data/" + METRIC_NAME + "/classes/class_" + COMPLEXITY_CLASS + "/";
     string max_score_path       = metric_results_path + "max_score.txt";
     string min_score_path       = metric_results_path + "min_score.txt";
     string hist_path            = metric_results_path + "histogram.csv";
     string high_path            = metric_results_path + "highest_scored.txt";
     string low_path             = metric_results_path + "lowest_scored.txt";
 
+    // Buffer configuration
     error_code ec;
-    auto file_sz = fs::file_size(functions_data, ec);
+    auto file_sz = fs::file_size(functions_filepath, ec);
     if (ec) {
-        cerr << "Cannot open " << functions_data << ": " << ec.message() << "\n";
+        cerr << "Cannot open " << functions_filepath << ": " << ec.message() << "\n";
         return -1;
     }
-    const ull NUM_ELEMS   = ull(file_sz) / 4;
-    if (BATCH_SIZE == 0) BATCH_SIZE = NUM_ELEMS;
+    const ull NUM_ELEMS = ull(file_sz) / 4;
+    BATCH_SIZE = (BATCH_SIZE == 0) ? NUM_ELEMS : BATCH_SIZE;
     const ull NUM_BATCHES = NUM_ELEMS / BATCH_SIZE + (NUM_ELEMS % BATCH_SIZE != 0);
-    std::vector<uint32_t> buffer(BATCH_SIZE);
+    vector<uint32_t> buffer(BATCH_SIZE);
+
+    // Concurrency configuration
+    const unsigned hw_threads = max(1u, thread::hardware_concurrency());
+    if (!RNG_SEED_FROM_CLI) {
+        random_device rd;
+        RNG_BASE_SEED = (static_cast<ull>(rd()) << 32) | static_cast<ull>(rd());
+    }
+    vector<ThreadRNG> rng_pool;
+    rng_pool.reserve(hw_threads);
+    for (unsigned tid = 0; tid < hw_threads; ++tid)
+        rng_pool.emplace_back(RNG_BASE_SEED, tid);
     
     cout    << "--------------------------------------------------------------------------------\n"
             << "Selected class: " << COMPLEXITY_CLASS << "\n"
             << "Number of functions: " << NUM_ELEMS << "\n"
             << "Computed in batches of size " << BATCH_SIZE << ", hence computing " << NUM_BATCHES << " batches\n"
             << "Computed metric: " << METRIC_NAME << "\n"
-            << "Probability of testing metric: " << PROB << "\n"
+            << "Number of threads for concurrency: " << hw_threads << "\n"
+            << "RNG base seed: " << RNG_BASE_SEED << (RNG_SEED_FROM_CLI ? " (CLI)" : " (random_device)") << "\n"
+            << "Probability of testing metric: " << ((PROB >= 1) ? 1 : PROB) << "\n"
             << "--------------------------------------------------------------------------------\n";
+    // ─────────────────────────────────────────────────────────────────────────
 
-    // ── Pass 1: determine min/max (skipped when fixed values are provided) ──
+    // ── Step 1: determine min/max ────────────────────────────────────────────
     cout << "Computing max and min values...\n";
 
     ull min_val, max_val;
     bool valid = false;
     bool first_batch = true;
-    std::ifstream min_score_infile(min_score_path);
-    std::ifstream max_score_infile(max_score_path);
+    ifstream min_score_infile(min_score_path);
+    ifstream max_score_infile(max_score_path);
 
     if (min_score_infile.is_open() && max_score_infile.is_open()) {
-        // Ambos archivos existen -> leer valores
+        // Both files exists, then read their values
         min_score_infile >> min_val;
         max_score_infile >> max_val;
 
@@ -85,55 +120,166 @@ int main(int argc, char* argv[]) {
         max_score_infile.close();
         cout << "Computed max and min values! Time spent: " << format_time(0) << "\n";
     } else {
-        // Alguno no existe → calcular valores
+        // Any don't exists, then compute min-max values
         unordered_set<uint32_t> highest_functions;
         unordered_set<uint32_t> lowest_functions;
-
-        ifstream file(functions_data, ios::binary);
+        ifstream file(functions_filepath, ios::binary);
         ull nbatch = 0;
 
-        auto start_time = std::chrono::steady_clock::now();
+        auto start_time = chrono::steady_clock::now();
+        // Read binary file in batches
         while (file.read(reinterpret_cast<char*>(buffer.data()), buffer.size() * sizeof(uint32_t)) || file.gcount() > 0) {
             ull num_elements = static_cast<ull>(file.gcount()) / sizeof(uint32_t);
 
-            for (ull i = 0; i < num_elements; ++i) {
-                if (dis(gen) > PROB)
+            if (num_elements <= 0) {
+                cerr << "Some bytes readed from " << functions_filepath << ", but not a whole element. Probably the file is corrupted\n";
+                return -1;
+            }
+
+            struct LocalExtrema {
+                bool valid = false;
+                ull min_v = 0;
+                ull max_v = 0;
+                unordered_set<uint32_t> lowest;
+                unordered_set<uint32_t> highest;
+            };
+
+            // Divide the processing within a batch among num_threads to speed up the computation
+            unsigned num_threads = static_cast<unsigned>(min<ull>(hw_threads, num_elements));
+            ull thread_chunk = (num_elements + num_threads - 1) / num_threads;
+            vector<LocalExtrema> local_extrema(num_threads);
+            vector<thread> threads;
+            threads.reserve(num_threads);
+
+            for (unsigned thread_id = 0; thread_id < num_threads; ++thread_id) {
+                // Compute its range
+                ull start = thread_id * thread_chunk;
+                ull end = min(num_elements, start + thread_chunk);
+
+                // Build the procedure to process its chunk
+                threads.emplace_back([&, thread_id, start, end]() {
+                    LocalExtrema& ext = local_extrema[thread_id];
+                    ThreadRNG& random_gen = rng_pool[thread_id];
+                    for (ull i = start; i < end; ++i) {
+                        if (random_gen.next() > PROB)
+                            continue;
+
+                        truthtable t = to_truthtable(buffer[i]);
+                        ull v = METRIC(t);
+
+                        if (!ext.valid) {
+                            ext.valid = true;
+                            ext.min_v = v;
+                            ext.max_v = v;
+                            ext.lowest.insert(buffer[i]);
+                            ext.highest.insert(buffer[i]);
+                            continue;
+                        }
+
+                        if (v == ext.max_v) { ext.highest.insert(buffer[i]); }
+                        if (v == ext.min_v) { ext.lowest.insert(buffer[i]); }
+                        if (v > ext.max_v)  { ext.max_v = v; ext.highest.clear(); ext.highest.insert(buffer[i]); }
+                        if (v < ext.min_v)  { ext.min_v = v; ext.lowest.clear();  ext.lowest.insert(buffer[i]);  }
+                    }
+                });
+            }
+
+            // Start each thread and wait until all have finished
+            for (thread& worker : threads)
+                worker.join();
+
+            // Rebuild global computation based on local computations
+            bool batch_valid = false;
+            ull batch_min = 0;
+            ull batch_max = 0;
+            unordered_set<uint32_t> batch_lowest;
+            unordered_set<uint32_t> batch_highest;
+
+            // Get min-max data for the whole batch
+            for (auto& ext : local_extrema) {
+                // If data is not valid, continue
+                if (!ext.valid) continue;
+
+                // If there is no current min and max for the whole batch, initialize them
+                if (!batch_valid) {
+                    batch_valid = true;
+                    batch_min = ext.min_v;
+                    batch_max = ext.max_v;
+                    batch_lowest = move(ext.lowest);
+                    batch_highest = move(ext.highest);
                     continue;
-                
-                truthtable t = to_truthtable(buffer[i]);
-                ull v = METRIC(t);
-                
-                if (!valid) {
-                    min_val = v; valid = true; lowest_functions.clear();  lowest_functions.insert(buffer[i]);
-                    max_val = v; valid = true; highest_functions.clear(); highest_functions.insert(buffer[i]);
                 }
-                else {
-                    if (v == max_val) { highest_functions.insert(buffer[i]); }
-                    if (v == min_val) { lowest_functions.insert(buffer[i]); }
-                    if (v > max_val)  { max_val = v; valid = true; highest_functions.clear(); highest_functions.insert(buffer[i]); }
-                    if (v < min_val)  { min_val = v; valid = true; lowest_functions.clear();  lowest_functions.insert(buffer[i]);  }
+
+                // Whenever there is current min and max, then just update if necessary
+                if (ext.min_v < batch_min) {
+                    batch_min = ext.min_v;
+                    batch_lowest = move(ext.lowest);
+                } else if (ext.min_v == batch_min) {
+                    batch_lowest.merge(ext.lowest);
+                }
+                if (ext.max_v > batch_max) {
+                    batch_max = ext.max_v;
+                    batch_highest = move(ext.highest);
+                } else if (ext.max_v == batch_max) {
+                    batch_highest.merge(ext.highest);
+                }
+            }
+
+            // Update min-max data between batches
+            if (batch_valid) {
+                if (!valid) {
+                    valid = true;
+                    min_val = batch_min;
+                    max_val = batch_max;
+                    lowest_functions = move(batch_lowest);
+                    highest_functions = move(batch_highest);
+                } else {
+                    if (batch_min < min_val) {
+                        min_val = batch_min;
+                        lowest_functions = move(batch_lowest);
+                    } else if (batch_min == min_val) {
+                        lowest_functions.merge(batch_lowest);
+                    }
+
+                    if (batch_max > max_val) {
+                        max_val = batch_max;
+                        highest_functions = move(batch_highest);
+                    } else if (batch_max == max_val) {
+                        highest_functions.merge(batch_highest);
+                    }
                 }
             }
             ++nbatch;
 
-            auto now = std::chrono::steady_clock::now();
-            std::chrono::duration<double> elapsed = now - start_time;
-
+            auto now = chrono::steady_clock::now();
+            chrono::duration<double> elapsed = now - start_time;
             double time_per_batch = elapsed.count() / nbatch;
             double remaining_time = (NUM_BATCHES - nbatch) * time_per_batch;
 
             if (!first_batch)
                 CLEAR_LINES(3)
-            cout    << "Done batch no: " << nbatch << ", ETA: " << format_time(remaining_time) << "\n"
-                    << "Min function (" << *lowest_functions.begin() << ") of a total of (" << lowest_functions.size() << ") with value (" << min_val << ")\n"
-                    << "Max function (" << *highest_functions.begin() << ") of a total of (" << highest_functions.size() << ") with value (" << max_val << ")";
+            cout << "Done batch no: " << nbatch << ", ETA: " << format_time(remaining_time) << "\n";
+            if (valid) {
+                cout << "Min function (" << *lowest_functions.begin() << ") of a total of (" << lowest_functions.size() << ") with value (" << min_val << ")\n"
+                     << "Max function (" << *highest_functions.begin() << ") of a total of (" << highest_functions.size() << ") with value (" << max_val << ")";
+            } else {
+                cout << "No sampled functions yet in this run.\n"
+                     << "Current PROB value skipped every function so far.";
+            }
             
             first_batch = false;
         }
         file.close();
 
-        auto now = std::chrono::steady_clock::now();
-        std::chrono::duration<double> elapsed = now - start_time;
+        // Print results to user
+        if (!valid) {
+            CLEAR_LINES(3)
+            cout << "No sampled functions found. Increase --prob and try again.\n";
+            return -1;
+        }
+
+        auto now = chrono::steady_clock::now();
+        chrono::duration<double> elapsed = now - start_time;
         CLEAR_LINES(3)
         cout    << "Computed max and min values! Time spent: " << format_time(elapsed.count()) << "\n"
                 << "--------------------------------------------------------------------------------\n"
@@ -191,36 +337,72 @@ int main(int argc, char* argv[]) {
         cout << "Lowest  functions saved in: " << low_path  << "\n";
         cout << "--------------------------------------------------------------------------------\n";
     }
-    
+    // ─────────────────────────────────────────────────────────────────────────
+
+    // ── Step 2: calculate bins ───────────────────────────────────────────────
     // Build bin edges:  NUM_BINS+1 edges from min_val to max_val  (inclusive)
     ull range = max_val - min_val + 1;
     ull NUM_BINS = min(MAX_NUM_BINS, range);
     ull bin_size = (range + NUM_BINS - 1) / NUM_BINS;
     vector<ull> hist_accum(NUM_BINS, 0);
 
-    // ── Pass 2: calculate bins ───────────────────────────────────────────────────
     cout << "Computing histogram...\n";
-    ifstream file(functions_data, ios::binary);
+    ifstream file(functions_filepath, ios::binary);
     ull nbatch = 0;
 
-    auto start_time = std::chrono::steady_clock::now();
+    auto start_time = chrono::steady_clock::now();
+    // Read binary file in batches
     while (file.read(reinterpret_cast<char*>(buffer.data()), buffer.size() * sizeof(uint32_t)) || file.gcount() > 0) {
-        int num_elements = static_cast<int>(file.gcount()) / sizeof(uint32_t);
+        ull num_elements = static_cast<ull>(file.gcount()) / sizeof(uint32_t);
 
-        for (ull i = 0; i < num_elements; ++i) {
-            if (dis(gen) > PROB)
-                continue;
-            
-            truthtable t = to_truthtable(buffer[i]);
-            ull v = METRIC(t);
-            ull bin = (v - min_val) / bin_size;
-            hist_accum[bin]++;
+        if (num_elements <= 0) {
+            cerr << "Some bytes readed from " << functions_filepath << ", but not a whole element. Probably the file is corrupted\n";
+            return -1;
+        }
+        
+        // Divide the processing within a batch among num_threads to speed up the computation
+        unsigned num_threads = static_cast<unsigned>(min<ull>(hw_threads, num_elements));
+        ull thread_chunk = (num_elements + num_threads - 1) / num_threads;
+        vector<vector<ull>> local_histograms(num_threads, vector<ull>(NUM_BINS, 0));
+        vector<thread> threads;
+        threads.reserve(num_threads);
+
+        for (unsigned thread_id = 0; thread_id < num_threads; ++thread_id) {
+            // Compute its range
+            ull start = thread_id * thread_chunk;
+            ull end = min(num_elements, start + thread_chunk);
+
+            // Build the procedure to process its chunk
+            threads.emplace_back([&, thread_id, start, end]() {
+                ThreadRNG& random_gen = rng_pool[thread_id];
+                vector<ull>& local_hist = local_histograms[thread_id];
+                for (ull i = start; i < end; ++i) {
+                    if (random_gen.next() > PROB)
+                        continue;
+
+                    truthtable t = to_truthtable(buffer[i]);
+                    ull v = METRIC(t);
+                    ull bin = (v - min_val) / bin_size;
+                    if (bin >= NUM_BINS) bin = NUM_BINS - 1;
+                    local_hist[bin]++;
+                }
+            });
+        }
+
+        // Start each thread and wait until all have finished
+        for (thread& worker : threads)
+            worker.join();
+
+        // Rebuild global computation based on local computations
+        for (const auto& local_hist : local_histograms) {
+            for (ull b = 0; b < NUM_BINS; ++b) {
+                hist_accum[b] += local_hist[b];
+            }
         }
         ++nbatch;
 
-        auto now = std::chrono::steady_clock::now();
-        std::chrono::duration<double> elapsed = now - start_time;
-
+        auto now = chrono::steady_clock::now();
+        chrono::duration<double> elapsed = now - start_time;
         double time_per_batch = elapsed.count() / nbatch;
         double remaining_time = (NUM_BATCHES - nbatch) * time_per_batch;
 
@@ -229,12 +411,13 @@ int main(int argc, char* argv[]) {
                 << ", ETA: " << format_time(remaining_time);
 
     }
-    auto now = std::chrono::steady_clock::now();
-    std::chrono::duration<double> elapsed = now - start_time;
+    auto now = chrono::steady_clock::now();
+    chrono::duration<double> elapsed = now - start_time;
     cout << CLEAR_LINE << "Computed histogram! Time spent: " << format_time(elapsed.count()) << "\n";
     file.close();
+    // ─────────────────────────────────────────────────────────────────────────
 
-    // ── Save histogram as CSV ────────────────────────────────────────────────
+    // ── Step 3: Save histogram as CSV ────────────────────────────────────────
     {
         fs::create_directories(metric_results_path, ec);
         ofstream fh(hist_path);
@@ -251,6 +434,7 @@ int main(int argc, char* argv[]) {
         }
         cout << "Histogram saved -> " << hist_path << "\n";
     }
+    // ─────────────────────────────────────────────────────────────────────────
 
     return 0;
 }
@@ -263,6 +447,9 @@ int parse_argument(int argc, char * argv[]) {
             BATCH_SIZE = stoull(argv[++i]);
         } else if ((arg == "-p" || arg == "--prob") && i + 1 < argc) {
             PROB = stof(argv[++i]);
+        } else if ((arg == "-s" || arg == "--seed") && i + 1 < argc) {
+            RNG_BASE_SEED = stoull(argv[++i]);
+            RNG_SEED_FROM_CLI = true;
         } else if ((arg == "-m" || arg == "--metric") && i + 1 < argc) {
             METRIC_NAME = argv[++i];
             auto it = METRICS.find(METRIC_NAME);
@@ -302,8 +489,10 @@ void print_usage(const char* prog) {
          << "  -c, --class   CLASS     Complexity class to analyse\n\n"
          << "Options:\n"
          << "  -b, --batch   SIZE      Batch size (default: " << BATCH_SIZE << ")\n"
-         << "  -p, --prob    PROB      Probability threshold (default: " << PROB << ")\n\n"
+         << "  -p, --prob    PROB      Probability threshold (default: " << PROB << ")\n"
+         << "  -s, --seed    SEED      RNG base seed (default: random_device)\n\n"
          << "Examples:\n"
          << "  " << prog << " --metric entropy --class NP\n"
-         << "  " << prog << " --metric entropy --class NP --batch 512 --prob 0.75\n";
+         << "  " << prog << " --metric entropy --class NP --batch 512 --prob 0.75\n"
+         << "  " << prog << " --metric entropy --class NP --seed 123456789\n";
 }
