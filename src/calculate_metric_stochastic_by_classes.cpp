@@ -99,11 +99,11 @@ int main(int argc, char* argv[]) {
             << "Number of threads for concurrency: " << hw_threads << "\n"
             << "RNG base seed: " << RNG_BASE_SEED << (RNG_SEED_FROM_CLI ? " (CLI)" : " (random_device)") << "\n"
             << "Probability of testing metric: " << ((PROB >= 1) ? 1 : PROB) << "\n"
-            << "--------------------------------------------------------------------------------\n";
+            << "--------------------------------------------------------------------------------" << endl;
     // ─────────────────────────────────────────────────────────────────────────
 
     // ── Step 1: determine min/max ────────────────────────────────────────────
-    cout << "Computing max and min values...\n";
+    cout << "Computing max and min values..." << endl;
 
     ull min_val, max_val;
     bool valid = false;
@@ -118,7 +118,7 @@ int main(int argc, char* argv[]) {
 
         min_score_infile.close();
         max_score_infile.close();
-        cout << "Computed max and min values! Time spent: " << format_time(0) << "\n";
+        cout << "Computed max and min values! Time spent: " << format_time(0) << endl;
     } else {
         // Any don't exists, then compute min-max values
         unordered_set<uint32_t> highest_functions;
@@ -132,7 +132,7 @@ int main(int argc, char* argv[]) {
             ull num_elements = static_cast<ull>(file.gcount()) / sizeof(uint32_t);
 
             if (num_elements <= 0) {
-                cerr << "Some bytes readed from " << functions_filepath << ", but not a whole element. Probably the file is corrupted\n";
+                cerr << "Some bytes readed from " << functions_filepath << ", but not a whole element. Probably the file is corrupted" << endl;
                 return -1;
             }
 
@@ -257,14 +257,14 @@ int main(int argc, char* argv[]) {
             double remaining_time = (NUM_BATCHES - nbatch) * time_per_batch;
 
             if (!first_batch)
-                CLEAR_LINES(3)
-            cout << "Done batch no: " << nbatch << ", ETA: " << format_time(remaining_time) << "\n";
+                CLEAR_LINES(4)
+            cout << "Done batch no: " << nbatch << ", ETA: " << format_time(remaining_time) << endl;
             if (valid) {
                 cout << "Min function (" << *lowest_functions.begin() << ") of a total of (" << lowest_functions.size() << ") with value (" << min_val << ")\n"
-                     << "Max function (" << *highest_functions.begin() << ") of a total of (" << highest_functions.size() << ") with value (" << max_val << ")";
+                     << "Max function (" << *highest_functions.begin() << ") of a total of (" << highest_functions.size() << ") with value (" << max_val << ")" << endl;
             } else {
                 cout << "No sampled functions yet in this run.\n"
-                     << "Current PROB value skipped every function so far.";
+                     << "Current PROB value skipped every function so far." << endl;
             }
             
             first_batch = false;
@@ -274,7 +274,7 @@ int main(int argc, char* argv[]) {
         // Print results to user
         if (!valid) {
             CLEAR_LINES(3)
-            cout << "No sampled functions found. Increase --prob and try again.\n";
+            cout << "No sampled functions found. Increase --prob and try again." << endl;
             return -1;
         }
 
@@ -282,7 +282,7 @@ int main(int argc, char* argv[]) {
         chrono::duration<double> elapsed = now - start_time;
         CLEAR_LINES(3)
         cout    << "Computed max and min values! Time spent: " << format_time(elapsed.count()) << "\n"
-                << "--------------------------------------------------------------------------------\n"
+                << "--------------------------------------------------------------------------------" << endl
                 << "Number of functions with highest value (" << max_val << ") of metric: " << highest_functions.size() << "\n"
                 << "Sample of up to 10:\n";
         {
@@ -291,7 +291,7 @@ int main(int argc, char* argv[]) {
                 if (shown++ >= 10) break;
                 cout << "----> " << x << "\n";
             }
-            cout << "\n";
+            cout << endl;
         }
         cout << "Number of functions with lowest value (" << min_val << ") of metric: " << lowest_functions.size() << "\n";
         cout << "Sample of up to 10:\n";
@@ -301,7 +301,7 @@ int main(int argc, char* argv[]) {
                 if (shown++ >= 10) break;
                 cout << "----> " << x << "\n";
             }
-            cout << "\n";
+            cout << endl;
         }
 
         // Save extreme functions and values
@@ -333,9 +333,9 @@ int main(int argc, char* argv[]) {
             }
         }
 
-        cout << "Highest functions saved in: " << high_path << "\n";
-        cout << "Lowest  functions saved in: " << low_path  << "\n";
-        cout << "--------------------------------------------------------------------------------\n";
+        cout << "Highest functions saved in: " << high_path << endl;
+        cout << "Lowest  functions saved in: " << low_path  << endl;
+        cout << "--------------------------------------------------------------------------------" << endl;
     }
     // ─────────────────────────────────────────────────────────────────────────
 
@@ -346,7 +346,7 @@ int main(int argc, char* argv[]) {
     ull bin_size = (range + NUM_BINS - 1) / NUM_BINS;
     vector<ull> hist_accum(NUM_BINS, 0);
 
-    cout << "Computing histogram...\n";
+    cout << "Computing histogram..." << endl;
     ifstream file(functions_filepath, ios::binary);
     ull nbatch = 0;
 
@@ -356,7 +356,7 @@ int main(int argc, char* argv[]) {
         ull num_elements = static_cast<ull>(file.gcount()) / sizeof(uint32_t);
 
         if (num_elements <= 0) {
-            cerr << "Some bytes readed from " << functions_filepath << ", but not a whole element. Probably the file is corrupted\n";
+            cerr << "Some bytes readed from " << functions_filepath << ", but not a whole element. Probably the file is corrupted" << endl;
             return -1;
         }
         
@@ -406,14 +406,14 @@ int main(int argc, char* argv[]) {
         double time_per_batch = elapsed.count() / nbatch;
         double remaining_time = (NUM_BATCHES - nbatch) * time_per_batch;
 
-        cout    << CLEAR_LINE
-                << "Done batch no: " << nbatch
-                << ", ETA: " << format_time(remaining_time);
+        CLEAR_LINES(2)
+        cout    << "Done batch no: " << nbatch
+                << ", ETA: " << format_time(remaining_time) << endl;
 
     }
     auto now = chrono::steady_clock::now();
     chrono::duration<double> elapsed = now - start_time;
-    cout << CLEAR_LINE << "Computed histogram! Time spent: " << format_time(elapsed.count()) << "\n";
+    cout << CLEAR_LINE << "Computed histogram! Time spent: " << format_time(elapsed.count()) << endl;
     file.close();
     // ─────────────────────────────────────────────────────────────────────────
 
@@ -422,7 +422,7 @@ int main(int argc, char* argv[]) {
         fs::create_directories(metric_results_path, ec);
         ofstream fh(hist_path);
         if (!fh) {
-            cerr << "Cannot write " << hist_path << "\n";
+            cerr << "Cannot write " << hist_path << endl;
             return -1;
         }
 
@@ -432,7 +432,7 @@ int main(int argc, char* argv[]) {
             int bin_end   = bin_start + bin_size - 1;
             fh << bin_start << "," << bin_end << "," << hist_accum[b] << "\n";
         }
-        cout << "Histogram saved -> " << hist_path << "\n";
+        cout << "Histogram saved -> " << hist_path << endl;
     }
     // ─────────────────────────────────────────────────────────────────────────
 
