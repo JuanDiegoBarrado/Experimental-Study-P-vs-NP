@@ -87,5 +87,6 @@ const std::unordered_map<std::string, complexity_metric> METRICS = {
     { "vc_values", vc_values },
     { "distinct_fnfds", distinct_fnfds<5> },
     { "distinct_fnfcs", distinct_fnfcs<5> },
+    { "distinct_fnfgs", distinct_fnfgs<5> },
     { "neg_impact_on_fnfds", neg_impact_on_fnfds<5> }
 };
