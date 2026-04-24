@@ -42,7 +42,7 @@ ALL = $(BUILD)/optimal5_binary.exe \
       $(BUILD)/optimal5_numgates.exe \
       $(BUILD)/calculate_metric_stochastic_by_classes.exe \
       $(BUILD)/calculate_min_expression.exe \
-      $(BUILD)/calculate_fnm_expression.exe
+      $(BUILD)/calculate_fnf_expression.exe
 
 all: $(BUILD) $(ALL)
 
@@ -67,7 +67,7 @@ $(BUILD)/calculate_metric_stochastic_by_classes.exe: src/calculate_metric_stocha
 $(BUILD)/calculate_min_expression.exe: src/calculate_min_expression.cpp $(LIB_FULL) $(HEADERS_FULL)
 	$(CXX) $(FLAGS_LIB) $(FLAGS_DEBUG) $(filter %.cpp, $^) -o $@ $(FLAGS_LINK)
 
-$(BUILD)/calculate_fnm_expression.exe: src/calculate_fnm_expression.cpp $(LIB_FULL) $(HEADERS_FULL)
+$(BUILD)/calculate_fnf_expression.exe: src/calculate_fnf_expression.cpp $(LIB_FULL) $(HEADERS_FULL)
 	$(CXX) $(FLAGS_LIB) $(FLAGS_DEBUG) $(filter %.cpp, $^) -o $@ $(FLAGS_LINK)
 
 clean:
