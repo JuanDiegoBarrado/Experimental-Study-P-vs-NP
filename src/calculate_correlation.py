@@ -3,9 +3,8 @@ sys.path.append("lib/python")
 
 from pathlib import Path
 import pandas as pd
-import numpy as np
 import argparse
-import compute_wellness.stats as sts
+import evaluation.stats as sts
 
 NUM_CLASSES = 13
 
@@ -24,9 +23,9 @@ def parse_args():
         description="Construye la matriz de confusión de la métrica para calcular la correlación."
     )
     parser.add_argument(
-        "dir",
-        metavar="CARPETA",
-        help="Directorio de la métrica.",
+        "metric",
+        metavar="METRIC",
+        help="Métrica sobre la que calcular la correlación.",
     )
     return parser.parse_args()
 
@@ -35,7 +34,7 @@ def main():
     args = parse_args()
 
     # Recopilar ficheros
-    base = Path(args.dir)
+    base = Path("data/" / args.metric / "classes")
     if not base.is_dir():
         print(f"ERROR: '{base}' no es un directorio válido.", file=sys.stderr)
         sys.exit(1)

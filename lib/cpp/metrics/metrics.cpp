@@ -14,7 +14,7 @@ ull num_ones(const truthtable& sequence) {
     return n_ones;
 }
 
-ull vc_values(const truthtable& sequence) {
+ull num_classifications(const truthtable& sequence) {
     int n = sequence.size();
     int k = n;
 

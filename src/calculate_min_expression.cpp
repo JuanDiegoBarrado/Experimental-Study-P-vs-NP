@@ -73,8 +73,8 @@ int parse_argument(int argc, char * argv[]) {
 void print_usage(const char* prog) {
     cerr << "Usage: " << prog << " -f [FORM] [OPTION] VALUE\n\n"
          << "Forms: "
-         << "  - dnf"
-         << "  - cnf"
+         << "  - dnf" << endl
+         << "  - cnf" << endl
          << "Options:\n"
          << "  -i, --int     Truth table as a 32-bit unsigned integer  (e.g. 363959363)\n"
          << "  -s, --str     Truth table as a binary string            (e.g. 00010110...)\n\n"

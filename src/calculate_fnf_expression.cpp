@@ -2,7 +2,6 @@
 #include <cstdint>
 #include <cstring>
 
-
 #include "boolean_functions/boolean_functions.h"
 #include "boolean_functions/fourier_normal_form.h"
 #include "metrics/metrics.h"
@@ -33,10 +32,12 @@ int main(int argc, char * argv[]){
     string line, tree, form_type;
     ull score;
     std::unique_ptr<NodeFNF> exp;
+    std::unordered_map<ui32, ui64> m;
 
     if (form == FNFD) {
         exp = compute_fnfd<NUM_BITS>(truth_table);
         score = distinct_fnfds<NUM_BITS>(truth_table);
+        compute_fnfd<NUM_BITS>(truth_table)->compute_patterns(m);
         form_type = "FNFD";
     } else if (form == FNFC) {
         exp = compute_fnfc<NUM_BITS>(truth_table);
@@ -53,6 +54,11 @@ int main(int argc, char * argv[]){
     cout << form_type << ": " << line << "\n";
     cout << "Score: " << score << "\n";
     cout << "FNF tree:\n" << tree << "\n";
+    cout << "FNFs:\n";
+    for (pair<ui32, ui64> p : m) {
+        truthtable t = to_truthtable(p.first);
+        cout << "\t" << print_table(t) << "\n";
+    }
 
     return 0;
 }

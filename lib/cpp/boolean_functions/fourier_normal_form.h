@@ -132,7 +132,7 @@ struct NodeFNFC : NodeFNF {
 };
 
 template <size_t Nbits>
-truthtable magic_function(vector<minbool::MinTerm<Nbits>*>& terms, bool isMinTerms) {
+truthtable minterms_to_truthtable(vector<minbool::MinTerm<Nbits>*>& terms, bool isMinTerms) {
     static_assert(Nbits <= MAX_INPUT_BITS, "Nbits exceeds truthtable supported size");
     static_assert(Nbits < sizeof(size_t) * 8, "Nbits too large for size_t shift");
 
@@ -243,8 +243,8 @@ static std::unique_ptr<NodeFNF> build_heterogeneous(const truthtable& truth_tabl
     }    
     // consideramos las partes que quedarían si dividimos en DNF -> x_i^(f_1) + (f_2)
     // f_1 hay que calcular de nuevo su tabla de verdad, f_2 es duplicar donde x_i sea 0.
-    t_presente = magic_function<Nbits>(presente, true);
-    t_no_presente = magic_function<Nbits>(no_presente, true);
+    t_presente = minterms_to_truthtable<Nbits>(presente, true);
+    t_no_presente = minterms_to_truthtable<Nbits>(no_presente, true);
     auto dnf_left  = build_heterogeneous<Nbits>(t_presente);
     auto dnf_right = build_heterogeneous<Nbits>(t_no_presente);
 
@@ -287,8 +287,8 @@ static std::unique_ptr<NodeFNF> build_heterogeneous(const truthtable& truth_tabl
         }
     }    
     // consideramos las partes que quedarían si dividimos en DNF
-    t_presente = magic_function<Nbits>(presente, false);
-    t_no_presente = magic_function<Nbits>(no_presente, false);
+    t_presente = minterms_to_truthtable<Nbits>(presente, false);
+    t_no_presente = minterms_to_truthtable<Nbits>(no_presente, false);
     auto cnf_left  = build_heterogeneous<Nbits>(t_presente);
     auto cnf_right = build_heterogeneous<Nbits>(t_no_presente);
 
