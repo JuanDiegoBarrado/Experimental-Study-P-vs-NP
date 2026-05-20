@@ -1,6 +1,6 @@
 import subprocess, pathlib
 
-BIN = pathlib.Path(__file__).parent / "bin/test_binaries.exe"
+BIN = pathlib.Path(__file__).parent / "bin/test_binaries_classes.exe"
 
 def test_parser_ok():
     result = subprocess.run([BIN], capture_output=True)

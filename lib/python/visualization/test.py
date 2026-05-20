@@ -15,7 +15,7 @@ df = pd.read_csv(
 )   
 # df = df.sample(frac=0.75, random_state=42)
 
-metrica = lambda x: metrics.vc_values(x)
+metrica = lambda x: metrics.num_classifications(x)
 df['sequence'] = df['Funcion'].map(lambda x: format(x, f'0{BITS}b'))
 df['measure'] = df['sequence'].progress_apply(metrica)
 

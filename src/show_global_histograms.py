@@ -29,14 +29,9 @@ def parse_args():
         description="Superpone histogramas de varios CSVs en una sola figura."
     )
     parser.add_argument(
-        "dir",
-        metavar="CARPETA",
-        help="Directorio en el que buscar ficheros CSV.",
-    )
-    parser.add_argument(
-        "--recursive", "-r",
-        action="store_true",
-        help="Busca CSVs también dentro de subcarpetas.",
+        "metric",
+        metavar="METRIC",
+        help="Directorio de la métrica en el que buscar los histogramas en ficheros CSV.",
     )
     parser.add_argument(
         "--alpha",
@@ -125,16 +120,16 @@ def main():
     args = parse_args()
 
     # Recopilar ficheros
-    base = Path(args.dir)
-    if not base.is_dir():
-        print(f"ERROR: '{base}' no es un directorio válido.", file=sys.stderr)
+    hists_path = "data" / Path(args.metric) / "classes"
+    if not hists_path.is_dir():
+        print(f"ERROR: La métrica '{args.metric}' no es un directorio válido.", file=sys.stderr)
         sys.exit(1)
 
-    pattern = "**/*.csv" if args.recursive else "*.csv"
-    paths = sorted(base.glob(pattern), key=lambda x: int(x.parent.name.split('_')[1]))
+    pattern = "**/*.csv"
+    paths = sorted(hists_path.glob(pattern), key=lambda x: int(x.parent.name.split('_')[1]))
 
     if not paths:
-        print(f"ERROR: no se encontraron CSVs en '{base}'.", file=sys.stderr)
+        print(f"ERROR: no se encontraron CSVs en '{hists_path}'.", file=sys.stderr)
         sys.exit(1)
 
     # Paleta de colores (cíclica si hay muchos ficheros)
@@ -144,16 +139,16 @@ def main():
     fig, ax = plt.subplots(figsize=(10, 5))
 
     loaded = 0
-    for path, color in zip(paths, colors):
+    for hists_path, color in zip(paths, colors):
         try:
-            df = load_csv(path)
+            df = load_csv(hists_path)
         except Exception as e:
-            print(f"AVISO: se omite {path.name} — {e}", file=sys.stderr)
+            print(f"AVISO: se omite {hists_path.name} — {e}", file=sys.stderr)
             continue
 
         draw_histogram(
             ax, df,
-            label=path.parent.name,
+            label=hists_path.parent.name,
             color=color,
             alpha=args.alpha,
             normalize=args.normalize,

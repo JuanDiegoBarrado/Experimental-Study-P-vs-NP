@@ -24,14 +24,14 @@ int main(int argc, char * argv[]){
     string internal_symb, external_symb;
     if (isDNF) {
         resp = compute_minimal_DNF<NUM_BITS>(truth_table);
-        internal_symb = "+";
-        external_symb = "^";
+        internal_symb = "^";
+        external_symb = "+";
         cout << "DNF: ";
     }
     else {
         resp = compute_minimal_CNF<NUM_BITS>(truth_table);
-        internal_symb = "^";
-        external_symb = "+";
+        internal_symb = "+";
+        external_symb = "^";
         cout << "CNF: ";
     }
     for (minbool::MinTerm<NUM_BITS>& v : resp) {

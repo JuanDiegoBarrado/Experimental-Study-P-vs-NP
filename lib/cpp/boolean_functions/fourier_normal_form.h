@@ -102,7 +102,7 @@ struct NodeFNFC : NodeFNF {
     NodeFNFC(int var, bool sign, 
              std::unique_ptr<NodeFNF> left = nullptr, 
              std::unique_ptr<NodeFNF> right = nullptr) 
-        : NodeFNF(var, sign, OR_SYMB, AND_SYMB, std::move(left), std::move(right))
+        : NodeFNF(var, !sign, OR_SYMB, AND_SYMB, std::move(left), std::move(right))
     {}
     
     std::string to_string() const override {
