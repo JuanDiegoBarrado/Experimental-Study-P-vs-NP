@@ -34,7 +34,7 @@ def main():
     args = parse_args()
 
     # Recopilar ficheros
-    base = Path("data/" / args.metric / "classes")
+    base = "data" / Path(args.metric) / "classes"
     if not base.is_dir():
         print(f"ERROR: '{base}' no es un directorio válido.", file=sys.stderr)
         sys.exit(1)

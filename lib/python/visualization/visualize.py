@@ -1,7 +1,8 @@
 import csv
 import matplotlib.pyplot as plt
 from pathlib import Path
-
+import pandas as pd
+import numpy as np
 
 def save_histogram(csv_file):
     csv_path = Path(csv_file)
@@ -49,3 +50,37 @@ def save_histogram(csv_file):
     plt.close(fig)
 
     return output_path
+
+
+def draw_histogram(ax, df: pd.DataFrame, label: str, color, alpha: float, normalize: bool):
+    lefts  = df["bin_left"].to_numpy(dtype=float)
+    rights = df["bin_right"].to_numpy(dtype=float)
+    counts = df["count"].to_numpy(dtype=float)
+
+    # Los bins son enteros con intervalos cerrados [bin_left, bin_right].
+    # El ancho real de cada bin es bin_right - bin_left + 1.
+    # Las barras se posicionan de (bin_left - 0.5) a (bin_right + 0.5)
+    # para que cada entero quede centrado en su barra, con un pequeño
+    # hueco visual entre barras contiguas.
+    gap = 0.05
+    bar_lefts = lefts - 0.5 + gap / 2
+    widths    = (rights - lefts + 1) - gap
+
+    if normalize:
+        real_widths = rights - lefts + 1   # ancho real para el área
+        total_area = np.sum(counts * real_widths)
+        heights = counts / total_area if total_area > 0 else counts
+    else:
+        heights = counts
+
+    ax.bar(
+        bar_lefts,
+        heights,
+        width=widths,
+        align="edge",
+        label=label,
+        color=color,
+        alpha=alpha,
+        edgecolor=color,
+        linewidth=0.8,
+    )

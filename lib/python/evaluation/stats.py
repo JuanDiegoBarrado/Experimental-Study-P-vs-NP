@@ -1,4 +1,6 @@
 import math
+import pandas as pd
+from pathlib import Path
 
 def kendall_tau_b(matrix):
     """
@@ -90,47 +92,6 @@ def kendall_tau_c(matrix):
     return tau_c
 
 
-# def pearson_correlation(matrix):
-#     """
-#     Calcula la correlacion de Pearson para una tabla de contingencia.
-
-#     Args:
-#         matrix: tabla de contingencia (numpy array) donde filas=A, columnas=B
-
-#     Returns:
-#         r: coeficiente de correlacion de Pearson
-#     """
-#     n_rows, n_cols = len(matrix), len(matrix[0])
-#     n = int(sum([sum(row) for row in matrix]))
-
-#     if n == 0:
-#         return 0.0
-
-#     row_values = np.arange(n_rows, dtype=float)
-#     col_values = np.arange(n_cols, dtype=float)
-
-#     row_totals = matrix.sum(axis=1)
-#     col_totals = matrix.sum(axis=0)
-
-#     mean_x = (row_values * row_totals).sum() / n
-#     mean_y = (col_values * col_totals).sum() / n
-
-#     ex2 = ((row_values ** 2) * row_totals).sum() / n
-#     ey2 = ((col_values ** 2) * col_totals).sum() / n
-#     exy = (matrix * np.outer(row_values, col_values)).sum() / n
-
-#     var_x = ex2 - mean_x ** 2
-#     var_y = ey2 - mean_y ** 2
-
-#     if var_x <= 0 or var_y <= 0:
-#         return 0.0
-
-#     covariance = exy - mean_x * mean_y
-#     r = covariance / np.sqrt(var_x * var_y)
-
-#     return float(np.clip(r, -1.0, 1.0))
-
-
 def pearson_correlation(matrix):
     """
     Calcula la correlación de Pearson para una tabla de contingencia.
@@ -187,3 +148,28 @@ def pearson_correlation(matrix):
 
     # Clip manual para asegurar que esté en el rango [-1.0, 1.0]
     return max(-1.0, min(1.0, r))
+
+def compute_histogram_statistics(df: pd.DataFrame):
+    """Calcula media y desviación estándar de un histograma."""
+    # Punto medio de cada bin
+    bin_centers = (df['bin_left'] + df['bin_right']) / 2
+    
+    # Media ponderada
+    total_count = df['count'].sum()
+    mean = (bin_centers * df['count']).sum() / total_count
+    
+    # Desviación estándar ponderada
+    variance = ((bin_centers - mean) ** 2 * df['count']).sum() / total_count
+    std = math.sqrt(variance)
+    
+    return mean, std
+
+def load_histogram(path: Path) -> pd.DataFrame:
+    df = pd.read_csv(path)
+    required = {"bin_left", "bin_right", "count"}
+    if not required.issubset(df.columns):
+        raise ValueError(
+            f"{path.name}: se esperan columnas {required}, "
+            f"pero se encontraron {set(df.columns)}"
+        )
+    return df

@@ -12,12 +12,13 @@ Uso:
 
 import argparse
 import sys
+sys.path.append("lib/python")
 from pathlib import Path
 
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
-import numpy as np
-import pandas as pd
+import evaluation.stats as sts
+import visualization.visualize as visual
 
 
 # ---------------------------------------------------------------------------
@@ -60,59 +61,6 @@ def parse_args():
 
 
 # ---------------------------------------------------------------------------
-# Carga de datos
-# ---------------------------------------------------------------------------
-
-def load_csv(path: Path) -> pd.DataFrame:
-    df = pd.read_csv(path)
-    required = {"bin_left", "bin_right", "count"}
-    if not required.issubset(df.columns):
-        raise ValueError(
-            f"{path.name}: se esperan columnas {required}, "
-            f"pero se encontraron {set(df.columns)}"
-        )
-    return df
-
-
-# ---------------------------------------------------------------------------
-# Dibujo
-# ---------------------------------------------------------------------------
-
-def draw_histogram(ax, df: pd.DataFrame, label: str, color, alpha: float, normalize: bool):
-    lefts  = df["bin_left"].to_numpy(dtype=float)
-    rights = df["bin_right"].to_numpy(dtype=float)
-    counts = df["count"].to_numpy(dtype=float)
-
-    # Los bins son enteros con intervalos cerrados [bin_left, bin_right].
-    # El ancho real de cada bin es bin_right - bin_left + 1.
-    # Las barras se posicionan de (bin_left - 0.5) a (bin_right + 0.5)
-    # para que cada entero quede centrado en su barra, con un pequeño
-    # hueco visual entre barras contiguas.
-    gap = 0.05
-    bar_lefts = lefts - 0.5 + gap / 2
-    widths    = (rights - lefts + 1) - gap
-
-    if normalize:
-        real_widths = rights - lefts + 1   # ancho real para el área
-        total_area = np.sum(counts * real_widths)
-        heights = counts / total_area if total_area > 0 else counts
-    else:
-        heights = counts
-
-    ax.bar(
-        bar_lefts,
-        heights,
-        width=widths,
-        align="edge",
-        label=label,
-        color=color,
-        alpha=alpha,
-        edgecolor=color,
-        linewidth=0.8,
-    )
-
-
-# ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 
@@ -141,12 +89,12 @@ def main():
     loaded = 0
     for hists_path, color in zip(paths, colors):
         try:
-            df = load_csv(hists_path)
+            df = sts.load_histogram(hists_path)
         except Exception as e:
             print(f"AVISO: se omite {hists_path.name} — {e}", file=sys.stderr)
             continue
 
-        draw_histogram(
+        visual.draw_histogram(
             ax, df,
             label=hists_path.parent.name,
             color=color,

@@ -11,11 +11,14 @@ Uso:
 
 import argparse
 import sys
+sys.path.append("lib/python")
 from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+
+import evaluation.stats as sts
 
 
 # ---------------------------------------------------------------------------
@@ -45,42 +48,6 @@ def parse_args():
     )
     return parser.parse_args()
 
-
-# ---------------------------------------------------------------------------
-# Carga de datos
-# ---------------------------------------------------------------------------
-
-def load_csv(path: Path) -> pd.DataFrame:
-    df = pd.read_csv(path)
-    required = {"bin_left", "bin_right", "count"}
-    if not required.issubset(df.columns):
-        raise ValueError(
-            f"{path.name}: se esperan columnas {required}, "
-            f"pero se encontraron {set(df.columns)}"
-        )
-    return df
-
-
-# ---------------------------------------------------------------------------
-# Cálculo de estadísticas
-# ---------------------------------------------------------------------------
-
-def calcular_estadisticas_histograma(df: pd.DataFrame):
-    """Calcula media y desviación estándar de un histograma."""
-    # Punto medio de cada bin
-    bin_centers = (df['bin_left'] + df['bin_right']) / 2
-    
-    # Media ponderada
-    total_count = df['count'].sum()
-    mean = (bin_centers * df['count']).sum() / total_count
-    
-    # Desviación estándar ponderada
-    variance = ((bin_centers - mean) ** 2 * df['count']).sum() / total_count
-    std = np.sqrt(variance)
-    
-    return mean, std
-
-
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
@@ -108,8 +75,8 @@ def main():
 
     for path in paths:
         try:
-            df = load_csv(path)
-            mean, std = calcular_estadisticas_histograma(df)
+            df = sts.load_histogram(path)
+            mean, std = sts.compute_histogram_statistics(df)
             medias.append(mean)
             desviaciones.append(std)
             labels.append(path.parent.name)
