@@ -29,8 +29,7 @@ HEADERS_COMMON = lib/cpp/boolean_functions/boolean_functions.h \
 
 # Lista de todos los ejecutables de test
 ALL = $(BUILD)/test_binaries_classes.exe \
-      $(BUILD)/test_boolean_functions.exe \
-      $(BUILD)/debug_fail.exe
+      $(BUILD)/test_boolean_functions.exe
 
 all: $(BUILD) $(ALL)
 
@@ -41,9 +40,6 @@ $(BUILD)/test_binaries_classes.exe: $(SRC_DIR)/test_binaries_classes.cpp
 	$(CXX) $(FLAGS_LIB) $(FLAGS_DEBUG) $< -o $@ $(FLAGS_LINK)
 
 $(BUILD)/test_boolean_functions.exe: $(SRC_DIR)/test_boolean_functions.cpp $(LIB_COMMON) $(HEADERS_COMMON)
-	$(CXX) $(FLAGS_LIB) $(FLAGS_DEBUG) $(filter %.cpp, $^) -o $@ $(FLAGS_LINK)
-
-$(BUILD)/debug_fail.exe: $(SRC_DIR)/debug_fail.cpp $(LIB_COMMON) $(HEADERS_COMMON)
 	$(CXX) $(FLAGS_LIB) $(FLAGS_DEBUG) $(filter %.cpp, $^) -o $@ $(FLAGS_LINK)
 
 clean:

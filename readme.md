@@ -5,8 +5,34 @@
 
 [![C++](https://img.shields.io/badge/C++-17-blue.svg?style=flat-square)](https://isocpp.org/)
 [![Python](https://img.shields.io/badge/Python-3.x-yellow.svg?style=flat-square)](https://www.python.org/)
+[![Memoria](https://img.shields.io/badge/Memoria-PDF-red.svg?style=flat-square)](docs/memoria_TFG.pdf)
+[![Code License: MIT](https://img.shields.io/badge/Código-MIT-green.svg?style=flat-square)](LICENSE)
+[![Docs License: CC BY-NC-ND 4.0](https://img.shields.io/badge/Memoria-CC%20BY--NC--ND%204.0-lightgrey.svg?style=flat-square)](docs/LICENSE)
 
 </div>
+
+---
+
+## 📄 Memoria del TFG
+
+Este repositorio contiene el código asociado al Trabajo de Fin de Grado **«Predicción del tamaño de circuitos mínimos a través de la repetitividad de funciones booleanas»** (*Prediction of minimum circuit size through repetitiveness of Boolean functions*), defendido el 10 de junio de 2026 y calificado con un **10**. La memoria completa está disponible en [`docs/memoria_TFG.pdf`](docs/memoria_TFG.pdf).
+
+La memoria aborda el problema desde dos vertientes:
+- **Teórica**: exposición de las mejores cotas inferiores conocidas para el tamaño de circuitos sobre la base $B_2$ mediante la técnica de eliminación de puertas aplicada a los *affine dispersers* (de $3n - o(n)$ a $3{,}1n - o(n)$).
+- **Experimental**: propuesta y evaluación de métricas basadas en la entropía de Shannon, el número de clasificaciones y la **Forma Normal de Fourier (FNF)**. En funciones de 5 bits, la métrica FNF alcanza una correlación de **0,4463** con el tamaño del circuito mínimo, respetando en media su monotonía.
+
+Si utilizas este trabajo, puedes citarlo como:
+
+```bibtex
+@thesis{barrado2026tfg,
+  author = {Barrado Daganzo, Juan Diego},
+  title  = {Predicción del tamaño de circuitos mínimos a través de la repetitividad de funciones booleanas},
+  type   = {Trabajo de Fin de Grado},
+  school = {Universidad Complutense de Madrid},
+  year   = {2026},
+  url    = {https://github.com/JuanDiegoBarrado/Experimental-Study-P-vs-NP}
+}
+```
 
 ---
 
@@ -88,9 +114,17 @@ python src/show_global_histograms.py
 - `third_party/`: Dependencias externas y herramientas de terceros.
 - `build/`: Directorio donde se guardan los binarios tras la compilación.
 - `test/`: Batería de pruebas.
+- `docs/`: Memoria del Trabajo de Fin de Grado en PDF.
+
+---
+
+## ⚖️ Licencia
+
+- **Código**: [MIT](LICENSE).
+- **Memoria** (`docs/memoria_TFG.pdf`): [CC BY-NC-ND 4.0](docs/LICENSE). Puede compartirse citando al autor, sin fines comerciales y sin obras derivadas. Las figuras reproducidas de otros trabajos conservan los derechos de sus autores.
 - `data/`: Ficheros generados durante los estudios experimentales (historiales, tablas, métricas precalculadas).
 
 <br>
 <div align="center">
-  <i>Trabajo de Fin de Grado en el Doble Grado en Ingeniería Informática y Matemáticas (UCM) <br> Autor: Juan Diego Barrado Daganzo</i>
+  <i>Trabajo de Fin de Grado en el Doble Grado en Ingeniería Informática y Matemáticas (UCM) <br> Autor: Juan Diego Barrado Daganzo <br> Directores: Ismael Rodríguez Laguna y Narciso Martí Oliet</i>
 </div>
